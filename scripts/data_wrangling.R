@@ -3,7 +3,7 @@
 # le dataset final contiendra des noms de souches renommes pour faciliter le travail de Steve dans SAS
 # e.g Res13-Abat-PEA15-P4-01 devient APEA15P401
 # de meme le dataset final contiendra des noms de gene de resistance renommes
-
+#install.packages("tidyverse")
 library(tidyverse)
 library(ggplot2)
 
@@ -68,7 +68,10 @@ df_collapsed <- read.csv("data_271119/resistome_271119_collapsed.csv", sep ="\t"
 # 1. On enleve les lignes ayant NA dans la colonne steve_strain_names (car pas de donnnees de sensititre)
 # 2. On enelve la colonne Strain avec les anciens noms.
 # 3. On renomme la colonne steve_strain_names par Strain et on la place dans la premiere colonne
-df_collapsed_2 <- df_collapsed %>% filter(!is.na(steve_strain_names)) %>% select(-Strain) %>% rename('Strain' = steve_strain_names) %>% select (Strain, everything())
+#df_collapsed_2 <- df_collapsed %>% filter(!is.na(steve_strain_names)) %>% select(-Strain) %>% rename('Strain' = steve_strain_names) %>% select (Strain, everything())
+# edited april 2020
+df_collapsed_2 <- df_collapsed %>% filter(!is.na(steve_strain_names)) %>% select(-steve_strain_names)
+
 
 # avant d'exporter enlever les genes qui ne figurent plus dans le dataset
 C <- df_collapsed_2[,1:14]
@@ -79,4 +82,43 @@ df_collapsed_3 <- cbind(C,D2)
 
 
 
-write.csv(df_collapsed_3 , 'data_271119/resistome_steve_271119.csv', row.names = FALSE, quote = FALSE)
+#write.csv(df_collapsed_3 , 'data_271119/resistome_steve_271119.csv', row.names = FALSE, quote = FALSE)
+write.csv(df_collapsed_3 , 'data_271119/resistome_steve_210420.csv', row.names = FALSE, quote = FALSE)
+
+
+# Les etapes suivants ont ete ajoutees durant la pandemie de COVI-19
+# en teletravail pour ajouter 60 souches sensibles a l'analyse
+
+
+# vendredi trace ; load final resistome file with holoenzyme coding!
+sensitive_strains_amr_genes <- read.csv("data_160420/sensitive_strains_collapsed_AMR_final_resistome.csv")
+
+
+# Ne pas commettre l'erreur de dire by="Strain", on fait un natural join ici et ca marche!
+all_amr <- full_join(df_collapsed_3, sensitive_strains_amr_genes)
+
+# on veut remplacer les NAs par des 0 dans la section des genes de resistance
+# on va remplacer les NAs par des 0 et recoller ensuite
+
+C <- all_amr[,1:14]
+D <- all_amr[,15:139]
+
+# On remplace les NA dans D (effectif)
+D[is.na(D)] <- 0
+
+# df1 notre dataset avec les valeurs de resistome pour les plasmides et les chr 
+all_amr_2 <- cbind(C,D)
+
+
+
+
+write.csv(all_amr_2, 'data_160420/resistome_final_200420.csv', row.names = FALSE, quote = FALSE)
+
+
+
+
+
+
+
+
+

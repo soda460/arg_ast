@@ -1,8 +1,13 @@
-# 17 janvier 2020
+# 27 avril 2020
 # Jean-Simon Brouard
+
+# install.packages('svglite')
+# install.packages('ggrepel')
 
 library(tidyverse)
 library(ggplot2)
+library(svglite)
+library(ggrepel)
 
 #------------------------------------------------------------------------------
 # Function str_to_quosure
@@ -34,7 +39,7 @@ pheno_geno <- function (df, AST, gene_list, antibio) {
   header_df <- c('freq_presence', 'freq_absence', 'var00', 'var11', 'var10', 'var01', 'pct_00', 'pct_11' )
   AST <- enquo(AST)
   AST_name <- paste0(quo_name(AST))  # Will be used to name the plot
-  
+  AST_name <- trimws(AST_name, "r")
   print (gene_list)
   
   # Apply our function to calculate var_11, var_00,  etc! to a list of genes implicated in the resistance
@@ -47,28 +52,35 @@ pheno_geno <- function (df, AST, gene_list, antibio) {
   # Get string objects from quosure?
   L <- lapply(gene_list, quo_name)
   
-  df3 <- df2 %>% add_column(gene=L) %>% select(gene, everything())
+  df3 <- df2 %>% add_column(gene=unlist(L)) %>% select(gene, everything())
+  
+  filename <- paste("plots_2020/", AST_name, ".csv", sep = '')
   
   print(df3)
   
-  ggplot(df3, aes(x=pct_11, y=pct_00)) +
-    geom_point(shape=21, fill='blue') +
+  write.csv(df3, filename, row.names = FALSE, quote = FALSE)
+
+  # First save the plot in a variable
+  p <- ggplot(df3, aes(x=pct_11, y=pct_00)) +
     xlim(c(0, 1)) +
     ylim(c(0, 1)) +
-    geom_text(aes(label=gene), size=3, hjust=1, vjust=-0.5) +
-    geom_point(aes(size = freq_presence))
-  
-  # 2 Create the plot
-    ggplot(df3, aes(x=pct_11, y=pct_00)) +
-    geom_point(shape=21, fill='blue') +
-    xlim(c(0, 1)) +
-    ylim(c(0, 1)) +
-    geom_text(aes(label=gene), size=3, hjust=1, vjust=-0.5) +
-    geom_point(aes(size = freq_presence)) +
+    geom_text_repel(aes(label=gene)) +
+    geom_point(color = 'red') +
+    theme_classic(base_size = 16) +
     ggtitle(paste("Resistance determinant to ", antibio, " (" , AST_name, ")", sep=""))
-  
-  # Specify files to save your image using a function such as jpeg(), png(), svg() or pdf()  
-  # ggsave(plot=p, paste("plots/", AST_name, ".eps", sep=""), width = 14, height = 7, dpi=600)
+
+  # Then save the plot in a file
+    ggsave(plot=p, paste("plots_2020/", AST_name, ".pdf", sep=""), width = 14, height = 7, dpi=600)
+
+  # And finally, print the same plot in the RStudio console  
+  # Alternative plot with the ggrepel library to avoid surimposed text
+  ggplot(df3, aes(x=pct_11, y=pct_00)) +
+    xlim(c(0, 1)) +
+    ylim(c(0, 1)) +
+    geom_text_repel(aes(label=gene)) +
+    geom_point(color = 'red') +
+    theme_classic(base_size = 16) +
+    ggtitle(paste("Resistance determinant to ", antibio, " (" , AST_name, ")", sep=""))
 }
 #------------------------------------------------------------------------------
 
@@ -107,7 +119,6 @@ calculate_concordance <- function (df, AST_col, gene_col) {
   pct_11 = var11/freq_presence
   
   data <- c(freq_presence, freq_absence, var00, var11, var10, var01, pct_00, pct_11)
-  
   return(data)
   print(data)
 }
@@ -118,26 +129,34 @@ calculate_concordance <- function (df, AST_col, gene_col) {
 # Using the version where raw phenotypes (R, S, I) were interpreted as 1 or 0 by DPL
 
 ast_carcass <- read.csv('data_140120/ast_carcass.csv', sep =',')
-
 ast_feces_etc <- read.csv('data_140120/ast_feces_etc.csv', sep = ',')
-
 ast <- ast_carcass %>% bind_rows(ast_feces_etc)
-
 ast2 <- ast %>% rename(Strain = strain) # in the csv we have 'strain' not 'Strain' as in res dataset 
 
 
-# 2 - Loading the Genotype dataset
+# 1.B - Adding the sensitive strains in the phenotype dataset
 
-res <- read.csv('data_271119/resistome_271119_collapsed.csv', sep ='\t')
+ast_3_meta <- read.csv('data_160420/metadata_sensitive_strains.csv')
+ast_3_results <- read.csv('data_160420/AST_sensibles.csv')
+ast_3_results <- ast_3_results %>% rename(Strain = strain)
+ast_sensibles <- inner_join(ast_3_meta, ast_3_results, by = "Strain")
+ast_final <- full_join(ast_sensibles, ast2)
+ast_final <- ast_final %>% select(-Sample_ID)
 
-res2 <- res %>% filter(steve_strain_names != 'NAs')
+
+# 2 - Loading the final genotype dataset
+# Note that the merge of the first 131 strains and the new sensitive datasets
+# has been done in the data_wrangling.R sript
+
+res_final <- read.csv('data_160420/resistome_final_200420.csv')
 
 
-# 3 - Merging the two previous datasets
-df <- ast2 %>% inner_join(res2, by = 'Strain')
+# 3 - Merging the genotype and the phenotype datasets
+
+df <- ast_final %>% inner_join(res_final, by = 'Strain')
 
 # 3.1 Put in a variable the Antibiotic resistance genes actually found in the strains
-ARG_found <- as.list(colnames(df))[-1:-48]   # cols 1 to 47 are other stuff or metadata
+ARG_found <- as.list(colnames(df))[-1:-47]   # cols 1 to 47 are other stuff or metadata
 
 
 # 4 - Loading the resistance determiant dataset
@@ -165,44 +184,41 @@ df %>% filter (sul2 != 0 & SUL == 0) %>% select (Strain, genus, SUL, sul1, sul2,
 df %>% filter (sul2 == 0 & SUL == 1) %>% select (Strain, genus, SUL, sul1, sul2, sul3)
 
 
-# 6 Debuging and testing section
+# 6 Debuging and testing section, keep it for understanding it in the future :)
 
 # 6.1 Performing analysis with home-made gene lists with quosures!
-SUL_list <- c(quo(sul2), quo(sul1), quo(sul3))
+# SUL_list <- c(quo(sul2), quo(sul1), quo(sul3))
 
 # Then calling the main function pheno_geno that notably produce graphs!
-# If the graph does not appear interactively, look in the plot folder...
-#pheno_geno(df, SUL, SUL_list)
+# pheno_geno(df, SUL, SUL_list)
 
 # Alternatively, the quos (note the s) function take several arguments and will save time...
-MEM_list <- quos(IMP_7, ACT_2, ACT_17, ramA, Ecoli_acrR, Ecoli_marR, marA)
-#pheno_geno(df, MEM, MEM_list)
-
+# MEM_list <- quos(IMP_7, ACT_2, ACT_17, ramA, Ecoli_acrR, Ecoli_marR, marA)
+# pheno_geno(df, MEM, MEM_list)
 
 # 6.2 Trying to construct these lists with R
 
-SUL <- res_det %>% filter (SUL == 1) %>% select (determinant)
-b <- as.list(as.character(SUL$determinant))
+# SUL <- res_det %>% filter (SUL == 1) %>% select (determinant)
+# b <- as.list(as.character(SUL$determinant))
 # Ce qui m'a permis de comprendre
-b[[2]]
-quo(!!sym(b[[2]]))
-c <- map(b, str_to_quosure) # where str_to_quosure is a minimal functionn that use sym and !!
-#pheno_geno(df, SUL, c)
+#  b[[2]]
+# quo(!!sym(b[[2]]))
+# c <- map(b, str_to_quosure) # where str_to_quosure is a minimal functionn that use sym and !!
+# pheno_geno(df, SUL, c)
 # Got the same result!
 
 # Another test with FOT
-FOT <- res_det %>% filter (FOT == 1) %>% select (determinant)
-b <- as.list(as.character(FOT$determinant))
+# FOT <- res_det %>% filter (FOT == 1) %>% select (determinant)
+# b <- as.list(as.character(FOT$determinant))
 # Problem can occur because some gene determinant are not present in the pheno-geno dataset
 # Here we list the ARG found
-ARG_found <- as.list(colnames(df))[-1:-48]   # cols 1 to 47 are other stuff or metadata
-c <- keep(b, (b %in% ARG_found))
-d <- map(c, str_to_quosure) # map is a purrr fn
-#pheno_geno(df, FOT, d, "fotantib")
+# ARG_found <- as.list(colnames(df))[-1:-48]   # cols 1 to 47 are other stuff or metadata
+# c <- keep(b, (b %in% ARG_found))
+# d <- map(c, str_to_quosure) # map is a purrr fn
+# pheno_geno(df, FOT, d, "fotantib")
 
 
 # 7 - The true analysis with the 24 antibiotics!
-  
 #------------------------------------------------------------------------------
 # 1 - AMP
 #------------------------------------------------------------------------------
