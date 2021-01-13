@@ -13,7 +13,7 @@
 git clone https://github.com/soda460/arg_ast
 ```
 
-If need install these R libraries in R
+If need install these R libraries
 
 ```R
 install.packages('tidyverse')
@@ -26,7 +26,9 @@ install.packages('svglite')
 
 ## Usage
 
-Don't use data_wrangling.R. Rather, try to fit your phenotype and genotype data to the format of the csv files loaded by the main program : arg_ast.R
+Try to fit your phenotype and genotype data to the format of the csv files loaded by the main program : arg_ast.R
+
+The script data_wrangling.R is highly specific to our datasets.
 
 
 ## Contributors
