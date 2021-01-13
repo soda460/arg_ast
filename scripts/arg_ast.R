@@ -159,7 +159,7 @@ df <- ast_final %>% inner_join(res_final, by = 'Strain')
 ARG_found <- as.list(colnames(df))[-1:-47]   # cols 1 to 47 are other stuff or metadata
 
 
-# 4 - Loading the resistance determiant dataset
+# 4 - Loading the resistance determinant dataset
 res_det <- read.csv('data_210120/res_det.csv', sep =',')
 
 
