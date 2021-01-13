@@ -1,8 +1,8 @@
 # 27 avril 2020
 # Jean-Simon Brouard
 
-# install.packages('svglite')
-# install.packages('ggrepel')
+install.packages('svglite')
+install.packages('ggrepel')
 
 library(tidyverse)
 library(ggplot2)
@@ -70,7 +70,7 @@ pheno_geno <- function (df, AST, gene_list, antibio) {
     ggtitle(paste("Resistance determinant to ", antibio, " (" , AST_name, ")", sep=""))
 
   # Then save the plot in a file
-    ggsave(plot=p, paste("plots_2020/", AST_name, ".pdf", sep=""), width = 14, height = 7, dpi=600)
+    ggsave(plot=p, paste("plots_2020/", AST_name, ".png", sep=""), width = 14, height = 7, dpi=600)
 
   # And finally, print the same plot in the RStudio console  
   # Alternative plot with the ggrepel library to avoid surimposed text

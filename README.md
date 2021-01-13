@@ -4,7 +4,7 @@
 
 
 
-<p align="center"><img src="misc/TET.pdf" alt="Phenotype Genotype associations with antibiotic resistance data" width="450"></p>
+<p align="center"><img src="misc/AUG.png" alt="Phenotype Genotype associations with antibiotic resistance data" width="450"></p>
 
 
 
