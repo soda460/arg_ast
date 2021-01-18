@@ -1,6 +1,6 @@
 
 
-# arg_ast : R code to unreveal phenotype genotype associations
+# arg_ast : R code to visualize phenotype-genotype associations between resistance genes identified by whole genome sequencing and antibiotic susceptibility testing datasets.
 
 
 <p align="left"><img src="misc/AUG.png" alt="Phenotype Genotype associations with antibiotic resistance data" width="1000"></p>
